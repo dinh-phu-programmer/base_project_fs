@@ -3,8 +3,9 @@ package com.samsung.project.security;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.samsung.project.exception.ErrorHttpResponse;
+import com.samsung.project.model.Authority;
 import com.samsung.project.model.User;
-import com.samsung.project.service.user.UserService;
+import com.samsung.project.service.authority.AuthorityService;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,6 +31,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import static com.samsung.project.constant.SecurityConstant.*;
 
@@ -38,16 +40,17 @@ import static com.samsung.project.constant.SecurityConstant.*;
 public class InitialAuthenticationFilter extends OncePerRequestFilter {
 
     private final AuthenticationManager authenticationManager;
-    private final UserService userService;
+    private final AuthorityService authorityService;
 
     @Value(("${jwt.signing.key}"))
     private String signingKey;
 
     @Autowired
-    public InitialAuthenticationFilter(AuthenticationManager authenticationManager, UserService userService) {
+    public InitialAuthenticationFilter(AuthenticationManager authenticationManager, AuthorityService authorityService) {
         this.authenticationManager = authenticationManager;
-        this.userService = userService;
+        this.authorityService = authorityService;
     }
+
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
@@ -86,7 +89,7 @@ public class InitialAuthenticationFilter extends OncePerRequestFilter {
             claimsUsername.put(USERNAME, user.getUsername());
 
             Map<String, Object> claimsAuthorities = new HashMap<>();
-            claimsAuthorities.put(AUTHORITIES, this.getUserAuthorities());
+            claimsAuthorities.put(AUTHORITIES, this.getUserAuthorities(user.getUsername()));
 
             String jwt = Jwts.builder()
                     .setClaims(claimsUsername)
@@ -106,7 +109,12 @@ public class InitialAuthenticationFilter extends OncePerRequestFilter {
         return !request.getServletPath().equals("/login") || !request.getMethod().equalsIgnoreCase("POST");
     }
 
-    private List<String> getUserAuthorities() {
-        return Arrays.asList("admin", "manager");
+    private List<String> getUserAuthorities(String username) {
+        List<Authority> authorities = authorityService.getAuthoritiesByUsername(username);
+        if (authorities.size() == 0) return Arrays.asList("user");
+        return authorities
+                .stream()
+                .map(Authority::getAuthority)
+                .collect(Collectors.toList());
     }
 }

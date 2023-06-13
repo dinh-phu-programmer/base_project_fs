@@ -31,29 +31,29 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
-        String jwt= request.getHeader("Authorization");
+        String jwt = request.getHeader("Authorization");
 
-        SecretKey key= Keys.hmacShaKeyFor(signingKey.getBytes(StandardCharsets.UTF_8));
+        SecretKey key = Keys.hmacShaKeyFor(signingKey.getBytes(StandardCharsets.UTF_8));
 
-        Claims claims= Jwts.parserBuilder()
+        Claims claims = Jwts.parserBuilder()
                 .setSigningKey(key)
                 .build()
                 .parseClaimsJws(jwt)
                 .getBody();
 
-        String username= String.valueOf(claims.get(USERNAME));
-        List<String> authorities= (List<String>)claims.get(AUTHORITIES);
+        String username = String.valueOf(claims.get(USERNAME));
+        List<String> authorities = (List<String>) claims.get(AUTHORITIES);
         //we can get authority in here
-        List<GrantedAuthority> grantedAuthorities= authorities
+        List<GrantedAuthority> grantedAuthorities = authorities
                 .stream()
-                .map(s-> new SimpleGrantedAuthority("ROLE_"+s))
+                .map(s -> new SimpleGrantedAuthority("ROLE_" + s.toUpperCase()))
                 .collect(Collectors.toList());
 
-        UsernamePasswordAuthentication auth= new UsernamePasswordAuthentication(username,null, grantedAuthorities);
+        UsernamePasswordAuthentication auth = new UsernamePasswordAuthentication(username, null, grantedAuthorities);
 
         SecurityContextHolder.getContext().setAuthentication(auth);
 
-        filterChain.doFilter(request,response);
+        filterChain.doFilter(request, response);
 
     }
 
