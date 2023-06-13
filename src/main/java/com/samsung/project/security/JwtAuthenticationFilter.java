@@ -17,7 +17,11 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
+
+import static com.samsung.project.constant.SecurityConstant.AUTHORITIES;
+import static com.samsung.project.constant.SecurityConstant.USERNAME;
 
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
@@ -37,11 +41,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 .parseClaimsJws(jwt)
                 .getBody();
 
-        String username= String.valueOf(claims.get("username"));
+        String username= String.valueOf(claims.get(USERNAME));
+        List<String> authorities= (List<String>)claims.get(AUTHORITIES);
         //we can get authority in here
-        GrantedAuthority authority= new SimpleGrantedAuthority("user");
+        List<GrantedAuthority> grantedAuthorities= authorities
+                .stream()
+                .map(s-> new SimpleGrantedAuthority("ROLE_"+s))
+                .collect(Collectors.toList());
 
-        UsernamePasswordAuthentication auth= new UsernamePasswordAuthentication(username,null, Arrays.asList(authority));
+        UsernamePasswordAuthentication auth= new UsernamePasswordAuthentication(username,null, grantedAuthorities);
 
         SecurityContextHolder.getContext().setAuthentication(auth);
 

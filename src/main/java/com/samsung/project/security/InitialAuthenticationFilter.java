@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.samsung.project.exception.ErrorHttpResponse;
 import com.samsung.project.model.User;
+import com.samsung.project.service.user.UserService;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -11,7 +12,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -24,24 +24,29 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.PrintWriter;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+
+import static com.samsung.project.constant.SecurityConstant.*;
 
 
 @Component
 public class InitialAuthenticationFilter extends OncePerRequestFilter {
 
     private final AuthenticationManager authenticationManager;
+    private final UserService userService;
 
     @Value(("${jwt.signing.key}"))
     private String signingKey;
 
     @Autowired
-    public InitialAuthenticationFilter(AuthenticationManager authenticationManager) {
+    public InitialAuthenticationFilter(AuthenticationManager authenticationManager, UserService userService) {
         this.authenticationManager = authenticationManager;
+        this.userService = userService;
     }
 
     @Override
@@ -57,34 +62,40 @@ public class InitialAuthenticationFilter extends OncePerRequestFilter {
         mapper.registerModule(new JavaTimeModule());
         User user = mapper.readValue(sb.toString(), User.class);
 
-        if (user.getPassword() == null) {
-            ErrorHttpResponse errorHttpResponse = new ErrorHttpResponse();
-            errorHttpResponse.setHttpStatus(HttpStatus.BAD_REQUEST);
-            errorHttpResponse.setMessage("password can't null");
-            errorHttpResponse.setDateTime(LocalDateTime.now());
-            errorHttpResponse.setStatusCode(HttpStatus.BAD_REQUEST.value());
+        if (user.getUsername() == null || user.getPassword() == null) {
+            ErrorHttpResponse errorHttpResponse = ErrorHttpResponse.builder()
+                    .httpStatus(HttpStatus.BAD_REQUEST)
+                    .message("username or password is not correct")
+                    .dateTime(LocalDateTime.now())
+                    .statusCode(HttpStatus.BAD_REQUEST.value())
+                    .build();
 
             response.resetBuffer();
             response.setStatus(HttpStatus.BAD_REQUEST.value());
             response.setHeader(HttpHeaders.CONTENT_TYPE, "application/json");
             response.getOutputStream().print(mapper.writeValueAsString(errorHttpResponse));
-            response.flushBuffer(); // marks response as committed -- if we don't do this the request will go through normally!
-//            filterChain.doFilter(request,response);
+            response.flushBuffer();
         } else {
             Authentication authentication = new UsernamePasswordAuthentication(user.getUsername(), user.getPassword());
 
             authenticationManager.authenticate(authentication);
 
             SecretKey key = Keys.hmacShaKeyFor(signingKey.getBytes(StandardCharsets.UTF_8));
-            Map<String, String> claimsMaps = new HashMap<>();
-            claimsMaps.put("username", user.getUsername());
+
+            Map<String, Object> claimsUsername = new HashMap<>();
+            claimsUsername.put(USERNAME, user.getUsername());
+
+            Map<String, Object> claimsAuthorities = new HashMap<>();
+            claimsAuthorities.put(AUTHORITIES, this.getUserAuthorities());
+
             String jwt = Jwts.builder()
-                    .setClaims(claimsMaps)
+                    .setClaims(claimsUsername)
+                    .addClaims(claimsAuthorities)
                     .signWith(key)
                     .compact();
 
-            response.setHeader("Authorization", jwt);
-            response.addCookie(new Cookie("token", jwt));
+            response.setHeader(AUTHORIZATION, jwt);
+            response.addCookie(new Cookie(TOKEN, jwt));
         }
 
 
@@ -93,5 +104,9 @@ public class InitialAuthenticationFilter extends OncePerRequestFilter {
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
         return !request.getServletPath().equals("/login") || !request.getMethod().equalsIgnoreCase("POST");
+    }
+
+    private List<String> getUserAuthorities() {
+        return Arrays.asList("admin", "manager");
     }
 }
