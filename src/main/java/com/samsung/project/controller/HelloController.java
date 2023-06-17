@@ -17,4 +17,11 @@ public class HelloController {
         return Thread.currentThread().getName()+" - "+ securityContext.getAuthentication().getName();
     }
 
+    @PreAuthorize("hasAuthority('WRITE')")
+    @GetMapping("/hello-authority")
+    public String hello2() throws Exception {
+        SecurityContext securityContext = SecurityContextHolder.getContext();
+        return Thread.currentThread().getName()+" - "+ securityContext.getAuthentication().getName();
+    }
+
 }

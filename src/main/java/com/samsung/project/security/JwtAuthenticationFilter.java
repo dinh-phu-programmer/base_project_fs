@@ -20,8 +20,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import static com.samsung.project.constant.SecurityConstant.AUTHORITIES;
-import static com.samsung.project.constant.SecurityConstant.USERNAME;
+import static com.samsung.project.constant.SecurityConstant.*;
 
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
@@ -31,7 +30,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
-        String jwt = request.getHeader("Authorization");
+        String jwt = request.getHeader(AUTHORIZATION);
 
         SecretKey key = Keys.hmacShaKeyFor(signingKey.getBytes(StandardCharsets.UTF_8));
 
