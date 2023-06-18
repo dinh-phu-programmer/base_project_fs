@@ -1,11 +1,16 @@
 spring:
   datasource:
-    url: jdbc:postgresql://localhost:5432/spring
+    url: jdbc:postgresql://localhost:5432/project
     username: postgres
     password: qazWSX1@
     driver-class-name: org.postgresql.Driver
-
-
+  flyway:
+    baseline-on-migrate: true
+    locations: classpath:db
+    enabled: true
+    schemas: public
+    username: "postgres"
+    password: "qazWSX1@"
 
 mybatis:
   configuration:
@@ -15,3 +20,4 @@ mybatis:
 jwt:
   signing:
     key: SpringBootTrainingsdfhsdfgsr4gsfgsregsfgsfdg#$%S%G
+
