@@ -3,6 +3,7 @@ package com.samsung.project.controller;
 import com.samsung.project.model.User;
 import com.samsung.project.service.user.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.web.bind.annotation.*;
 
@@ -25,6 +26,13 @@ public class AuthController {
     public String helloUser() {
         throw new BadCredentialsException("AAAA");
 //        return "Hello World!";
+    }
+
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @GetMapping("/user/get")
+    public User getUserByUserName(@RequestParam String username) throws Exception {
+        return this.userService.getUserByUserName(username);
     }
 }
 

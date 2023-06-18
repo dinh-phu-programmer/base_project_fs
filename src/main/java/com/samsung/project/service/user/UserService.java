@@ -29,6 +29,10 @@ public class UserService {
         userRepo.save(user);
     }
 
+    public User getUserByUserName(String username) {
+        return this.userRepo.findUserByUsername(username);
+    }
+
     public void auth(String username, String password) {
 
         if (username == null || password == null) {
