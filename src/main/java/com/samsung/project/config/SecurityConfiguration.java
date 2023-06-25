@@ -1,5 +1,7 @@
 package com.samsung.project.config;
 
+import com.samsung.project.filter.AuthenticationEntryPoint;
+import com.samsung.project.filter.UnAuthorizeFilter;
 import com.samsung.project.security.InitialAuthenticationFilter;
 import com.samsung.project.security.JwtAuthenticationFilter;
 import com.samsung.project.security.UsernamePasswordAuthenticationProvider;
@@ -17,13 +19,16 @@ public class SecurityConfiguration extends WebSecurityConfigurerAdapter {
     private final InitialAuthenticationFilter initialAuthenticationFilter;
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final UsernamePasswordAuthenticationProvider usernamePasswordAuthenticationProvider;
-
+    private final UnAuthorizeFilter unAuthorizeFilter;
+    private final AuthenticationEntryPoint authenticationEntryPoint;
     @Autowired
-    public SecurityConfiguration(InitialAuthenticationFilter initialAuthenticationFilter, JwtAuthenticationFilter jwtAuthenticationFilter, UsernamePasswordAuthenticationProvider usernamePasswordAuthenticationProvider) {
+    public SecurityConfiguration(InitialAuthenticationFilter initialAuthenticationFilter, JwtAuthenticationFilter jwtAuthenticationFilter, UsernamePasswordAuthenticationProvider usernamePasswordAuthenticationProvider, UnAuthorizeFilter unAuthorizeFilter, AuthenticationEntryPoint authenticationEntryPoint) {
         this.initialAuthenticationFilter = initialAuthenticationFilter;
 
         this.jwtAuthenticationFilter = jwtAuthenticationFilter;
         this.usernamePasswordAuthenticationProvider = usernamePasswordAuthenticationProvider;
+        this.unAuthorizeFilter = unAuthorizeFilter;
+        this.authenticationEntryPoint = authenticationEntryPoint;
     }
 
     @Override
@@ -41,9 +46,13 @@ public class SecurityConfiguration extends WebSecurityConfigurerAdapter {
                 .mvcMatchers("/auth/**").permitAll()
                 .anyRequest().authenticated()
                 .and()
+                .exceptionHandling()
+                .accessDeniedHandler(unAuthorizeFilter)
+                .authenticationEntryPoint(authenticationEntryPoint)
+                .and()
                 .addFilterAt(initialAuthenticationFilter, BasicAuthenticationFilter.class)
                 .addFilterAfter(jwtAuthenticationFilter, BasicAuthenticationFilter.class)
-                ;
+        ;
 
     }
 
